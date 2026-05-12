@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Escape</title>
+<style>
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:linear-gradient(135deg,#0f172a,#1e293b);
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+.screen{
+  width:90%;
+  max-width:900px;
+  background:rgba(255,255,255,0.08);
+  padding:30px;
+  border-radius:25px;
+  box-shadow:0 0 30px rgba(0,0,0,0.4);
+}
+.hidden{display:none;}
+h1{text-align:center;}
+button{
+  padding:12px 20px;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  font-size:1rem;
+  margin-top:10px;
+}
+.level-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:15px;
+  margin-top:20px;
+}
+.level-card{
+  background:rgba(255,255,255,0.08);
+  padding:15px;
+  border-radius:18px;
+  text-align:center;
+}
+input{
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  margin-top:15px;
+  font-size:1.1rem;
+}
+#question{
+  font-size:2rem;
+  text-align:center;
+  margin:20px 0;
+}
+.stats{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.card{
+  flex:1;
+  background:rgba(255,255,255,0.08);
+  padding:10px;
+  border-radius:12px;
+  text-align:center;
+}
+#message{
+  transition:0.3s;
+}
+
+.correct-anim{
+  animation:flash 0.4s;
+}
+
+.wrong-anim{
+  animation:shake 0.3s;
+}
+
+@keyframes flash{
+  0%{transform:scale(1);background:#22c55e;}
+  100%{transform:scale(1.05);background:transparent;}
+}
+
+@keyframes shake{
+  0%{transform:translateX(0);}
+  25%{transform:translateX(-6px);}
+  50%{transform:translateX(6px);}
+  75%{transform:translateX(-6px);}
+  100%{transform:translateX(0);}
+}
+
+#message{
+  margin-top:15px;
+  text-align:center;
+  font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<div id="menu" class="screen">
+  <div style="background:rgba(255,255,255,0.06);padding:20px;border-radius:18px;margin-bottom:25px;">
+    <h2 id="instructionsTitle">📜 Instruccions</h2>
+    <ul style="line-height:1.8;">
+      <li id="instruction1">✔ Resol operacions matemàtiques abans que s'acabi el temps.</li>
+      <li id="instruction2">✔ Aconsegueix punts i supera nivells.</li>
+      <li id="instruction3">✔ Necessites mínim ⭐⭐ per desbloquejar el següent nivell.</li>
+      <li id="instruction4">✔ Cada nivell és més ràpid i més difícil.</li>
+      <li id="instruction5">✔ El progrés es guarda automàticament.</li>
+    </ul>
+  </div>
+  <h1>🚀 Math Escape</h1>
+
+  <select id="language" onchange="changeLanguage()">
+    <option value="ca">Català</option>
+    <option value="es">Español</option>
+    <option value="en">English</option>
+  </select>
+
+  <input id="playerName" type="text" placeholder="Nom del jugador" style="margin-bottom:15px;">
+
+  <p id="description">
+    Resol operacions matemàtiques per escapar abans que el temps s'acabi.
+  </p>
+
+  <button onclick="openLevels()" id="playBtn">Començar</button>
+
+  <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px;align-items:center;">
+    <button id="musicBtn" onclick="toggleMusic()" style="background:#38bdf8;color:black;">
+      🔇 Música
+    </button>
+
+    <div style="width:220px;text-align:center;">
+      <label>🔉 Volum</label>
+      <input type="range" min="0" max="1" step="0.01" value="0.3" oninput="changeVolume(this.value)" style="width:100%;">
+    </div>
+  </div>
+
+  <button id="exitBtnMenu" onclick="showExitScreen()" style="background:#ef4444;color:white;margin-left:10px;">
+    🚪 Sortir del joc
+  </button>
+</div>
+
+<div id="levels" class="screen hidden">
+  <h1>🗺️ Nivells</h1>
+  <h2 id="playerWelcome" style="text-align:center;color:#facc15;">
+    🚀 Continua així, Jugador!
+  </h2>
+  <p>Necessites mínim ⭐⭐ per desbloquejar el següent nivell.</p>
+
+  <div class="level-grid" id="levelGrid"></div>
+
+  <button onclick="backMenu()">⬅ Tornar</button>
+</div>
+
+<div id="game" class="screen hidden">
+  <div class="stats">
+    <div class="card">🔥 <span id="combo">0</span></div>
+    <div class="card">⭐ <span id="score">0</span></div>
+    <div class="card">⏱️ <span id="timer">60</span></div>
+    <div class="card">🎯 <span id="levelText">1</span></div>
+  </div>
+
+  <div id="question">5 + 5</div>
+
+  <input type="number" id="answer" placeholder="Resposta" onkeydown="if(event.key==='Enter'){checkAnswer()}">
+
+  <button id="solveButton" onclick="checkAnswer()" style="width:100%;background:#22c55e;color:black;font-weight:bold;">
+    🚀 Resoldre operació
+  </button>
+
+  <div id="message"></div>
+
+  <button id="exitBtnGame" onclick="showExitScreen()" style="width:100%;background:#ef4444;color:white;margin-top:15px;">
+    🚪 Sortir del joc
+  </button>
+</div>
+
+<div id="exitScreen" class="screen hidden">
+  <div style="text-align:center;padding:40px;">
+    <div style="font-size:5rem;">👋</div>
+    <h1>Gràcies per jugar a Math Escape</h1>
+    <p style="font-size:1.2rem;line-height:1.8;max-width:600px;margin:auto;">
+      Has completat una aventura matemàtica plena de reptes, velocitat i nivells.
+      Esperem que hagis millorat les teves habilitats mentre et diverties 🚀
+    </p>
+
+    <div style="margin-top:30px;display:flex;gap:15px;justify-content:center;flex-wrap:wrap;">
+      <button onclick="backMenu()" style="background:#22c55e;color:black;font-weight:bold;">
+        🔄 Tornar al menú
+      </button>
+
+      <button onclick="closeGame()" style="background:#ef4444;color:white;font-weight:bold;">
+        ❌ Tancar pantalla
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="end" class="screen hidden">
+  <div style="text-align:center;font-size:4rem;">🏆</div>
+  <h1 id="finalTitle">🏁 Partida acabada</h1>
+  <h2 id="playerFinal"></h2>
+  <h2 id="finalScore"></h2>
+  <h3 id="stars"></h3>
+
+  <p id="finalMessage" style="line-height:1.8;font-size:1.1rem;max-width:600px;margin:auto;">
+    Has superat el repte matemàtic 🚀<br>
+    Continua millorant per aconseguir totes les estrelles i completar els 25 nivells.
+  </p>
+
+  <button onclick="restartLevel()" id="retryBtn" style="background:#22c55e;color:black;font-weight:bold;">
+    🔄 Tornar a jugar
+  </button>
+
+  <button onclick="openLevels()">🗺️ Tornar als nivells</button>
+  <button onclick="showExitScreen()" style="background:#ef4444;color:white;">🚪 Sortir del joc</button>
+</div>
+
+<script>
+// MÚSICA I SONS DEL JOC
+const bgMusic = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3');
+bgMusic.loop = true;
+bgMusic.volume = 0.12;
+
+function toggleMusic(){
+  if(bgMusic.paused){
+    bgMusic.play().catch(()=>{});
+    document.getElementById('musicBtn').textContent='🔊 Música';
+  }else{
+    bgMusic.pause();
+    document.getElementById('musicBtn').textContent='🔇 Música';
+  }
+}
+
+function changeVolume(value){
+  bgMusic.volume = value;
+}
+
+window.addEventListener('click', async ()=>{
+  try {
+    await bgMusic.play();
+    document.getElementById('musicBtn').textContent='🔊 Música';
+  } catch(err) {
+    console.log(err);
+  }
+},{once:true});
+
+// SONS DEL JOC
+const correctSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3');
+const wrongSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3');
+const levelSound = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
+
+function playSound(soundSrc){
+  const sound = new Audio(soundSrc);
+  sound.volume = 0.6;
+  sound.play().catch(()=>{});
+}
+const texts={
+  ca:{
+    desc:"Resol operacions matemàtiques per escapar abans que el temps s'acabi.",
+    play:"Començar",
+    instructionsTitle:"📜 Instruccions",
+    i1:"✔ Resol operacions matemàtiques abans que s'acabi el temps.",
+    i2:"✔ Aconsegueix punts i supera nivells.",
+    i3:"✔ Necessites mínim ⭐⭐ per desbloquejar el següent nivell.",
+    i4:"✔ Cada nivell és més ràpid i més difícil.",
+    i5:"✔ El progrés es guarda automàticament.",
+    solve:"🚀 Resoldre operació",
+    playerPlaceholder:"Nom del jugador",
+    exit:"🚪 Sortir del joc"
+  },
+  ca:{
+    desc:"Resol operacions matemàtiques per escapar abans que el temps s'acabi.",
+    play:"Començar"
+  },
+  es:{
+    desc:"Resuelve operaciones matemáticas antes de que el tiempo termine.",
+    play:"Empezar",
+    instructionsTitle:"📜 Instrucciones",
+    i1:"✔ Resuelve operaciones matemáticas antes de que se acabe el tiempo.",
+    i2:"✔ Consigue puntos y supera niveles.",
+    i3:"✔ Necesitas mínimo ⭐⭐ para desbloquear el siguiente nivel.",
+    i4:"✔ Cada nivel es más rápido y más difícil.",
+    i5:"✔ El progreso se guarda automáticamente.",
+    solve:"🚀 Resolver operación",
+    playerPlaceholder:"Nombre del jugador",
+    exit:"🚪 Salir del juego"
+  },
+  en:{
+    desc:"Solve math operations before time runs out.",
+    play:"Start",
+    instructionsTitle:"📜 Instructions",
+    i1:"✔ Solve math operations before time runs out.",
+    i2:"✔ Earn points and beat levels.",
+    i3:"✔ You need at least ⭐⭐ to unlock the next level.",
+    i4:"✔ Each level is faster and more difficult.",
+    i5:"✔ Progress saves automatically.",
+    solve:"🚀 Solve operation",
+    playerPlaceholder:"Player name",
+    exit:"🚪 Exit game"
+  }
+};
+
+function changeLanguage(){
+  const lang=document.getElementById('language').value;
+  document.getElementById('description').textContent=texts[lang].desc;
+  document.getElementById('instructionsTitle').textContent=texts[lang].instructionsTitle;
+  document.getElementById('instruction1').textContent=texts[lang].i1;
+  document.getElementById('instruction2').textContent=texts[lang].i2;
+  document.getElementById('instruction3').textContent=texts[lang].i3;
+  document.getElementById('instruction4').textContent=texts[lang].i4;
+  document.getElementById('instruction5').textContent=texts[lang].i5;
+  document.getElementById('playBtn').textContent=texts[lang].play;
+  document.getElementById('playerName').placeholder=texts[lang].playerPlaceholder;
+  document.getElementById('exitBtnMenu').textContent=texts[lang].exit;
+  document.getElementById('exitBtnGame').textContent=texts[lang].exit;
+  document.getElementById('solveButton').textContent=texts[lang].solve;
+}
+
+const menu=document.getElementById('menu');
+const levels=document.getElementById('levels');
+const game=document.getElementById('game');
+const end=document.getElementById('end');
+
+let currentLevel=1;
+let player='Jugador';
+let score=0;
+let timer=60;
+let correct=0;
+let interval;
+let answer=0;
+let streak=0;
+let totalAnswers=0;
+
+function openLevels(){
+  const currentPlayer = document.getElementById('playerName').value || 'Jugador';
+  document.getElementById('playerWelcome').textContent = `🚀 Continua així, ${currentPlayer}!`;
+  menu.classList.add('hidden');
+  game.classList.add('hidden');
+  end.classList.add('hidden');
+  levels.classList.remove('hidden');
+
+  renderLevels();
+}
+
+function backMenu(){
+  document.getElementById('exitScreen').classList.add('hidden');
+  levels.classList.add('hidden');
+  menu.classList.remove('hidden');
+}
+
+function renderLevels(){
+  const grid=document.getElementById('levelGrid');
+  grid.innerHTML='';
+
+  for(let i=1;i<=25;i++){
+
+    const stars=Number(localStorage.getItem('level_'+i))||0;
+    const prev=Number(localStorage.getItem('level_'+(i-1)))||0;
+
+    const unlocked=i===1 || prev>=2;
+
+    const div=document.createElement('div');
+    div.className='level-card';
+
+    div.innerHTML=`
+      <h3>Nivell ${i}</h3>
+      <div style="font-size:1.8rem;">
+        <span style="color:#facc15;text-shadow:0 0 10px #facc15;">${'⭐'.repeat(stars)}</span><span style='color:#e5e7eb;'>${'☆'.repeat(3-stars)}</span>
+      </div>
+      <button ${!unlocked?'disabled':''} onclick="startGame(${i})">
+        ${unlocked?'Jugar':'🔒'}
+      </button>
+    `;
+
+    grid.appendChild(div);
+  }
+}
+
+function startGame(level){
+  player=document.getElementById('playerName').value || 'Jugador';
+  currentLevel=level;
+
+  levels.classList.add('hidden');
+  game.classList.remove('hidden');
+
+  score=0;
+  // Cada nivell té menys temps disponible
+  timer=Math.max(8,80-level*3);
+
+  document.getElementById('score').textContent=score;
+  document.getElementById('timer').textContent=timer;
+  document.getElementById('levelText').textContent=level;
+
+  generateQuestion();
+
+  clearInterval(interval);
+
+  interval=setInterval(()=>{
+    timer--;
+    document.getElementById('timer').textContent=timer;
+
+    if(timer<=0){
+      finishGame();
+    }
+  },Math.max(120,1100-level*35));
+}
+
+function random(min,max){
+  return Math.floor(Math.random()*(max-min+1))+min;
+}
+
+function generateQuestion(){
+
+  let a,b;
+
+  if(currentLevel<=5){
+    a=random(1,20);
+    b=random(1,20);
+    answer=a+b;
+    document.getElementById('question').textContent=`${a} + ${b}`;
+
+  }else if(currentLevel<=10){
+    a=random(2,12);
+    b=random(2,12);
+    answer=a*b;
+    document.getElementById('question').textContent=`${a} × ${b}`;
+
+  }else if(currentLevel<=15){
+    a=random(20,100);
+    b=random(1,20);
+    answer=a-b;
+    document.getElementById('question').textContent=`${a} - ${b}`;
+
+  }else if(currentLevel<=20){
+    b=random(2,12);
+    answer=random(2,12);
+    a=b*answer;
+    document.getElementById('question').textContent=`${a} ÷ ${b}`;
+
+  }else{
+    answer=random(1,10);
+    a=random(2,8);
+    b=random(2,20);
+    document.getElementById('question').textContent=`${a}x + ${b} = ${a*answer+b}`;
+  }
+}
+
+function checkAnswer(){
+  const user=Number(document.getElementById('answer').value);
+
+  totalAnswers++;
+
+  if(user===answer){
+    streak++;
+    score+=10+(streak*2);
+    correct++;
+    document.getElementById('message').textContent=`✅ Correcte · Combo x${streak}`;
+    document.getElementById('combo').textContent=streak;
+    document.getElementById('game').classList.remove('wrong-anim');
+    document.getElementById('game').classList.add('correct-anim');
+    setTimeout(()=>document.getElementById('game').classList.remove('correct-anim'),300);
+    playSound(correctSound.src);
+  }else{
+    streak=0;
+    document.getElementById('combo').textContent=streak;
+    document.getElementById('message').textContent='❌ Incorrecte';
+    document.getElementById('game').classList.remove('correct-anim');
+    document.getElementById('game').classList.add('wrong-anim');
+    setTimeout(()=>document.getElementById('game').classList.remove('wrong-anim'),300);
+    playSound(wrongSound.src);
+  }
+
+  document.getElementById('score').textContent=score;
+  document.getElementById('answer').value='';
+
+  generateQuestion();
+}
+
+function showExitScreen(){
+  menu.classList.add('hidden');
+  levels.classList.add('hidden');
+  game.classList.add('hidden');
+  end.classList.add('hidden');
+
+  document.getElementById('exitScreen').classList.remove('hidden');
+}
+
+function closeGame(){
+  window.close();
+  setTimeout(()=>{
+    document.body.innerHTML=`
+      <div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#0f172a;color:white;font-family:Arial;text-align:center;padding:20px;">
+        <div>
+          <div style="font-size:6rem;">👋</div>
+          <h1>Math Escape</h1>
+          <p style="font-size:1.3rem;line-height:1.8;max-width:700px;">
+            Gracias por jugar.<br>
+            Has completado una aventura matemática llena de retos, velocidad y niveles.
+          </p>
+          <p style="opacity:0.8;">Ya puedes cerrar esta pestaña.</p>
+        </div>
+      </div>
+    `;
+  },100);
+}
+
+function restartLevel(){
+  startGame(currentLevel);
+}
+
+function finishGame(){
+  menu.classList.add('hidden');
+  levels.classList.add('hidden');
+  game.classList.add('hidden');
+  end.classList.add('hidden');
+
+  document.getElementById('exitScreen').classList.remove('hidden');
+}
+
+function closeGame(){
+  window.close();
+  alert('Ja pots tancar la pestanya del navegador 👋');
+}
+
+function finishGame(){
+  clearInterval(interval);
+
+  game.classList.add('hidden');
+  end.classList.remove('hidden');
+
+  let earned=1;
+
+  if(score>=currentLevel*60) earned=2;
+  if(score>=currentLevel*100) earned=3;
+
+  const previous=Number(localStorage.getItem('level_'+currentLevel))||0;
+
+  if(earned>previous){
+    playSound(levelSound.src);
+    localStorage.setItem('level_'+currentLevel,earned);
+  }
+
+  const accuracy = totalAnswers>0 ? Math.round((correct/totalAnswers)*100) : 0;
+
+  document.getElementById('playerFinal').textContent=`👤 ${player}`;
+  document.getElementById('finalScore').textContent=`⭐ Puntuació final: ${score}`;
+  document.getElementById('stars').textContent='⭐'.repeat(earned);
+  document.getElementById('finalScore').innerHTML += `<br>🎯 Precisió: ${accuracy}%<br>🔥 Millor combo: ${streak}`;
+
+  if(earned===3){
+    document.getElementById('finalMessage').innerHTML='🔥 Increïble! Has aconseguit 3 estrelles en aquest nivell. Ets una màquina de les matemàtiques.';
+  }else if(earned===2){
+    document.getElementById('finalMessage').innerHTML='✨ Molt bona partida! Ja pots desbloquejar el següent nivell.';
+  }else{
+    document.getElementById('finalMessage').innerHTML='💪 Encara pots millorar. Torna-ho a intentar per aconseguir més estrelles!';
+  }
+}
+</script>
+
+</body>
+</html>
